@@ -1,6 +1,2 @@
-certifi==2025.1.31
-distlib==0.3.9
-filelock==3.18.0
-platformdirs==4.3.7
-virtualenv==20.30.0
-wheel @ file:///usr/local/Cellar/python%403.13/3.13.2/libexec/wheel-0.45.1-py3-none-any.whl#sha256=b9235939e2096903717cb6bfc132267f8a7e46deb2ec3ef9c5e234ea301795d0
+py4j==0.10.9.9
+pyspark==4.0.0
