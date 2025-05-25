@@ -1,4 +1,5 @@
 from pyspark import SparkConf, SparkContext
+import math
 
 conf = SparkConf().setMaster("local[*]")
 
@@ -20,7 +21,6 @@ if __name__ == '__main__':
     tf = word_doc_pairs.reduceByKey(lambda a, b: a + b)
 
 
-
     # Document Frequency
     print('Creates (word, doc) pairs from each (doc, words), removing duplicates.\nExample: ("file.txt", ["hi", "world", "hi"]) → [("hi", "file.txt"), ("world", "file.txt")]')
 
@@ -30,8 +30,24 @@ if __name__ == '__main__':
 
     print('Counts how many docs each word appears in.\nExample: [("hi", "file1"), ("hi", "file2")] → [("hi", 2)]')
     df = (word_doc_unique
-          .distinct()
           .map(lambda x: (x[0], 1))
           .reduceByKey(lambda a, b: a + b))
 
-    pass
+
+    print("tf_idf")
+    # 1. Total number of documents
+    n_docs = docs_subset.count()
+
+    # 2. Compute IDF for each word: idf = log(n_docs / df)
+    idf = df.mapValues(lambda df_val: math.log(n_docs / df_val))
+
+    # 3. Convert IDF to a dictionary so we can join manually (broadcast-like)
+    idf_dict = dict(idf.collect())
+
+    # 4. Compute TF-IDF: tf_idf = tf * idf
+    tf_idf = tf.map(lambda x: ((x[0][0], x[0][1]), x[1] * idf_dict[x[0][0]]))
+    # x[0][0] = word, x[0][1] = doc, x[1] = tf count
+
+    # 5. Output result
+    for ((word, doc), score) in tf_idf.collect():
+        print(f"{word} in {doc} → TF-IDF: {score:.4f}")
