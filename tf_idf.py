@@ -28,16 +28,14 @@ def load_data(path:str)-> RDD:
 
     return sc.wholeTextFiles(path)
 
-def preprocess(data:RDD, collect:Optional[bool] = False, subset:Optional[int]=None)->RDD| list[tuple[str,list[str]]]:
+def preprocess(data:RDD[tuple[str, list[str]]], collect:Optional[bool] = False, subset:Optional[int]=None)->RDD[tuple[str, list[str]]]| list[tuple[str,list[str]]]:
     """
+    preprocess the data by splitting words via space and make em all lowercase. Has few other Options that are helpful for dev
+
     :param data: the dataset to be preprocessed
-    :type data: RDD
     :param collect: whether to collect the whole dataset or not, default is False
-    :type collect: bool
     :param subset: if you dont want to collect the whole dataset, you can give how many documents should be collected as subset
-    :type subset: int
-    :return: if not specified returns the lazy RDD else a list of tuples where the first entry is the filepath as string and the second entry is a list of strings ( all words of the corresponding document in lowercase
-    :type: RDD | list[(str,list[str])]
+    :return: if not specified returns the lazy RDD else a list of tuples where the first entry is the filepath as string and the second entry is a list of strings ( all words of the corresponding document in lowercase)
     """
     if collect and subset is not None:
         raise ValueError("Either you want to collect the whole dataset or subset should be specified both cant be set")
@@ -51,21 +49,22 @@ def preprocess(data:RDD, collect:Optional[bool] = False, subset:Optional[int]=No
     else:
         return  splitted_data
 
-
+def word_doc_pairs(data:RDD[tuple[str, list[str]]]):
+    """
+    :param data: data where each entry looks like this: ('document_path', ['w1', 'w2', …])
+    :return: flattend data where each entry looks like this:  ((w1, document_path), 1)
+    """
+    return data.flatMap(
+        lambda x: [((word, x[0]), 1) for word in x[1]]
+    )
 
 if __name__ == '__main__':
     rdd = load_data(path="./texts/**/*.txt")
     docs_list = preprocess(rdd,subset=1)
-    #what does this do again?
-    docs_subset = sc.parallelize(docs_list)
+    docs_subset = sc.parallelize(docs_list) # TODO: findout why this is done
+    word_doc_pairs = word_doc_pairs(docs_subset)
 
     # Term Frequency
-    print("word_pairs is List[Triplet[word,document,1]]")
-    word_doc_pairs = docs_subset.flatMap(
-        lambda x: [((word, x[0]), 1) for word in x[1]]
-    )
-
-    print("tf is List[Triplet[word,document,count]]")
     tf = word_doc_pairs.reduceByKey(lambda a, b: a + b)
 
 
