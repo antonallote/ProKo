@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Optional
+
 from pyspark import SparkConf, SparkContext
 import math
 from pyspark.sql import Row
@@ -5,18 +8,55 @@ from pyspark.ml.linalg import Vectors
 from pyspark.ml.clustering import LDA
 
 from pyspark.sql import SparkSession
+from pyspark import RDD
 
 
+#setup
 conf = SparkConf().setMaster("local[*]")
 sc = SparkContext.getOrCreate(conf=conf)
 spark = SparkSession.builder \
     .config(conf=sc.getConf()) \
     .getOrCreate()
 collect_while_dev= True
+
+def load_data(path:str)-> RDD:
+    """
+    :param path: where the data is located
+    :type path: str
+    :return: RDD of documents
+    """
+
+    return sc.wholeTextFiles(path)
+
+def preprocess(data:RDD, collect:Optional[bool] = False, subset:Optional[int]=None)->RDD| list[tuple[str,list[str]]]:
+    """
+    :param data: the dataset to be preprocessed
+    :type data: RDD
+    :param collect: whether to collect the whole dataset or not, default is False
+    :type collect: bool
+    :param subset: if you dont want to collect the whole dataset, you can give how many documents should be collected as subset
+    :type subset: int
+    :return: if not specified returns the lazy RDD else a list of tuples where the first entry is the filepath as string and the second entry is a list of strings ( all words of the corresponding document in lowercase
+    :type: RDD | list[(str,list[str])]
+    """
+    if collect and subset is not None:
+        raise ValueError("Either you want to collect the whole dataset or subset should be specified both cant be set")
+
+    splitted_data = data.mapValues(lambda text: text.lower().split())
+
+    if collect:
+        return splitted_data.collect()
+    if subset:
+        return splitted_data.take(subset)
+    else:
+        return  splitted_data
+
+
+
 if __name__ == '__main__':
-    rdd = sc.wholeTextFiles("./texts/**/*.txt")
-    docs_list = rdd.mapValues(lambda text: text.lower().split()).take(2)
-    print("docs_subset is List[Tuple[str,List[str]] , where each elem of the list is a tuple consisting of the filepath and the words from this file in a list of strings")
+    rdd = load_data(path="./texts/**/*.txt")
+    docs_list = preprocess(rdd,subset=1)
+    #what does this do again?
     docs_subset = sc.parallelize(docs_list)
 
     # Term Frequency
