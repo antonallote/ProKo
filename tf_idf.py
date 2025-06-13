@@ -49,7 +49,7 @@ def preprocess(data:RDD[tuple[str, list[str]]], collect:Optional[bool] = False, 
     else:
         return  splitted_data
 
-def word_doc_pairs(data:RDD[tuple[str, list[str]]]):
+def word_doc_pairs(data:RDD[tuple[str, list[str]]])->RDD[tuple[tuple[str,str],int]]:
     """
     :param data: data where each entry looks like this: ('document_path', ['w1', 'w2', …])
     :return: flattend data where each entry looks like this:  ((w1, document_path), 1)
@@ -57,35 +57,40 @@ def word_doc_pairs(data:RDD[tuple[str, list[str]]]):
     return data.flatMap(
         lambda x: [((word, x[0]), 1) for word in x[1]]
     )
+def calc_tf(word_doc_pairs:RDD[tuple[tuple[str,str],int]])->RDD[tuple[tuple[str,str],int]]:
+    #(('peer', 'file:/Users/antonvolker/Master_AI/ProKo/texts/Dutch/Baas Gansendonck - Hendrik Conscience.txt'), 8)
+    #Sums for each key (word,doc) the values ( its always 1 so this is a count operation) -> term frequency per doc it is if you wanna be super precise
+    return word_doc_pairs.reduceByKey(lambda a, b: a + b)
 
-if __name__ == '__main__':
-    rdd = load_data(path="./texts/**/*.txt")
-    docs_list = preprocess(rdd,subset=1)
-    docs_subset = sc.parallelize(docs_list) # TODO: findout why this is done
-    word_doc_pairs = word_doc_pairs(docs_subset)
+def calc_df(data:RDD[tuple[str, list[str]]])->RDD[tuple[str,int]]:
 
-    # Term Frequency
-    tf = word_doc_pairs.reduceByKey(lambda a, b: a + b)
-
-
-    # Document Frequency
     print('Creates (word, doc) pairs from each (doc, words), removing duplicates.\nExample: ("file.txt", ["hi", "world", "hi"]) → [("hi", "file.txt"), ("world", "file.txt")]')
 
     word_doc_unique = docs_subset.flatMap(
         lambda x: [(word, x[0]) for word in set(x[1])]
     )
-
     print('Counts how many docs each word appears in.\nExample: [("hi", "file1"), ("hi", "file2")] → [("hi", 2)]')
     df = (word_doc_unique
           .map(lambda x: (x[0], 1))
           .reduceByKey(lambda a, b: a + b))
+    return df
+
+if __name__ == '__main__':
+
+    rdd = load_data(path="./texts/**/*.txt")
+    docs_list = preprocess(rdd,subset=1)
+    docs_subset = sc.parallelize(docs_list) # TODO: findout why this is done / move into preprocess
+
+    # Document Frequency
+    df = calc_df(data=docs_subset)
+
+    # Term Frequency
+    word_doc_pairs = word_doc_pairs(docs_subset)
+    tf = calc_tf(word_doc_pairs=word_doc_pairs)
 
 
-    print("tf_idf")
-    # 1. Total number of documents
+    # Inverse Document Frquency log(Number of Documents / Document Frequency)
     n_docs = docs_subset.count()
-
-    # 2. Compute IDF for each word: idf = log(n_docs / df)
     idf = df.mapValues(lambda df_val: math.log(n_docs / df_val))
 
     # 3. Convert IDF to a dictionary so we can join manually (broadcast-like)
