@@ -8,8 +8,8 @@ from util import load_data, preprocess
 from pyspark import SparkConf, SparkContext
 
 from pyspark.sql import SparkSession
-#import nltk
-#nltk.download('stopwords')
+import nltk
+nltk.download('stopwords')
 from nltk.corpus import stopwords
 
 stopword_map = {
