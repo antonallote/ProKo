@@ -33,7 +33,7 @@ def pipeline():
     start = time.time()
 
     rdd = load_data(path="./texts/**/*.txt", sc=sc)
-    docs_list = preprocess(rdd, subset=1, stopword_map=stopword_map)
+    docs_list = preprocess(rdd, stopword_map=stopword_map)
     docs_subset = sc.parallelize(docs_list)
 
     # Document Frequency
@@ -101,7 +101,6 @@ def pipeline():
 
 
 
-# todo wrap this into a pipeline where params like subset sample size are add timing and iter. and create dumping
 if __name__ == '__main__':
     pipeline()
     pass
