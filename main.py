@@ -62,7 +62,7 @@ def pipeline():
 
     documents_df = build_document_dataframe(tf_idf, word_to_index, vocab_size, spark)
 
-    model = train_lda(documents_df, num_topics=10, max_iter=3)
+    model = train_lda(documents_df, num_topics=10, max_iter=10)
     topics_df = describe_topics(model, num_words=10)
 
     topics_df.show(truncate=False)
