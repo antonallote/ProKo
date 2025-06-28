@@ -33,7 +33,7 @@ def pipeline():
     start = time.time()
 
     rdd = load_data(path="./texts/**/*.txt", sc=sc)
-    docs_list = preprocess(rdd, stopword_map=stopword_map)
+    docs_list = preprocess(rdd, stopword_map=stopword_map).collect()
     docs_subset = sc.parallelize(docs_list)
 
     # Document Frequency
