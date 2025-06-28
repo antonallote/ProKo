@@ -5,8 +5,6 @@ from pyspark import RDD
 
 
 
-
-
 def load_data(path:str,sc:SparkContext)-> RDD:
     '''
     :param sc: context providing method to load text files

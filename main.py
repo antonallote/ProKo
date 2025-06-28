@@ -1,4 +1,5 @@
 import math
+import time
 
 from lda import build_vocabulary, build_document_dataframe, train_lda, describe_topics
 from tf_idf import calc_df, calc_tf, calc_word_doc_pairs, calc_tf_idf
@@ -28,12 +29,11 @@ spark = SparkSession.builder \
     .config(conf=sc.getConf()) \
     .getOrCreate()
 
+def pipeline():
+    start = time.time()
 
-# todo wrap this into a pipeline where params like subset sample size are add timing and iter. and create dumping
-if __name__ == '__main__':
-
-    rdd = load_data(path="./texts/**/*.txt",sc=sc)
-    docs_list = preprocess(rdd,subset=2,stopword_map=stopword_map)
+    rdd = load_data(path="./texts/**/*.txt", sc=sc)
+    docs_list = preprocess(rdd, subset=1, stopword_map=stopword_map)
     docs_subset = sc.parallelize(docs_list)
 
     # Document Frequency
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     tf_idf = calc_tf_idf(tf=tf, idf=idf_dict)
 
     # Print
-    #for ((word, doc), score) in tf_idf.collect():
+    # for ((word, doc), score) in tf_idf.collect():
     #    print(f"{word} in {doc} → TF-IDF: {score:.4f}")
 
     vocab, word_to_index = build_vocabulary(idf_dict)
@@ -67,19 +67,42 @@ if __name__ == '__main__':
 
     topics_df.show(truncate=False)
 
-
-    #postprocess
+    # postprocessing
     index_to_word = {index: word for word, index in word_to_index.items()}
     from pyspark.sql.functions import udf
     from pyspark.sql.types import ArrayType, StringType
 
-
     def decode_indices(indices: list[int]) -> list[str]:
         return [index_to_word.get(i, f"<unk_{i}>") for i in indices]
-
 
     decode_udf = udf(decode_indices, ArrayType(StringType()))
     decoded_topics = topics_df.withColumn("termWords", decode_udf(topics_df["termIndices"]))
     decoded_topics.select("topic", "termWords", "termWeights").show(truncate=False)
+    duration = time.time() - start
 
+
+    from pyspark.sql.functions import concat_ws
+
+    # Arrays zu Strings konvertieren
+    decoded_topics_csv_ready = decoded_topics \
+        .withColumn("termWordsStr", concat_ws(",", "termWords")) \
+        .withColumn("termWeightsStr", concat_ws(",", "termWeights")) \
+        .select("topic", "termWordsStr", "termWeightsStr")
+
+    (decoded_topics_csv_ready
+        .coalesce(1) \
+        .write \
+        .mode("overwrite") \
+        .option("header", "true") \
+        .csv("./output/topics"))
+
+    with open("./output/duration.txt", "w") as f:
+        f.write(f"Pipeline duration: {duration:.2f} seconds\n")
+
+
+
+# todo wrap this into a pipeline where params like subset sample size are add timing and iter. and create dumping
+if __name__ == '__main__':
+    pipeline()
+    pass
 
