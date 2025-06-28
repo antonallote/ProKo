@@ -54,7 +54,7 @@ def pipeline():
     idf_broadcast = sc.broadcast(idf_dict)
 
     # 4. Compute TF-IDF: tf_idf = tf * idf
-    tf_idf = calc_tf_idf(tf=tf, idf=idf_dict)
+    tf_idf = calc_tf_idf(tf=tf, idf_broadcast=idf_broadcast)
 
     # Print
     # for ((word, doc), score) in tf_idf.collect():
