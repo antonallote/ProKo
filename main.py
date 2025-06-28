@@ -48,7 +48,10 @@ def pipeline():
     idf = df.mapValues(lambda df_val: math.log(n_docs / df_val))
 
     # 3. Convert IDF to a dictionary so we can join manually (broadcast-like)
+
+
     idf_dict = dict(idf.collect())
+    idf_broadcast = sc.broadcast(idf_dict)
 
     # 4. Compute TF-IDF: tf_idf = tf * idf
     tf_idf = calc_tf_idf(tf=tf, idf=idf_dict)

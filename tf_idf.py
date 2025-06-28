@@ -53,7 +53,7 @@ def calc_df(data: RDD[tuple[str, list[str]]]) -> RDD[tuple[str, int]]:
     return df
 
 
-def calc_tf_idf(tf: RDD[tuple[tuple[str, str], int]], idf: dict[str, float]) -> RDD[tuple[tuple[str, str], float]]:
+def calc_tf_idf(tf: RDD[tuple[tuple[str, str], int]], idf_broadcast) -> RDD[tuple[tuple[str, str], float]]:
     """
     Compute TF-IDF score for each word-document pair.
 
@@ -63,6 +63,7 @@ def calc_tf_idf(tf: RDD[tuple[tuple[str, str], int]], idf: dict[str, float]) -> 
     :param idf: Dictionary with entries like {word: idf_score}
     :return: RDD with entries like ((word, document_path), tf_idf_score)
     """
-    return tf.map(lambda x: ((x[0][0], x[0][1]), x[1] * idf[x[0][0]]))
+    return tf.map(lambda x: (x[0], x[1] * idf_broadcast.value.get(x[0][0], 0.0)))
+
 
 
