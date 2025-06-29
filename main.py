@@ -92,12 +92,10 @@ def pipeline():
         .withColumn("termWeightsStr", concat_ws(",", "termWeights")) \
         .select("topic", "termWordsStr", "termWeightsStr")
 
-    (decoded_topics_csv_ready
-        .coalesce(1) \
-        .write \
+    decoded_topics_csv_ready.write \
         .mode("overwrite") \
         .option("header", "true") \
-        .csv("./output/topics"))
+        .csv("./output/topics")
 
     with open("./output/duration.txt", "w") as f:
         f.write(f"Pipeline duration: {duration:.2f} seconds\n")
