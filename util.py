@@ -3,6 +3,8 @@ from typing import Optional
 from pyspark import SparkConf, SparkContext
 from pyspark import RDD
 
+import pandas as pd
+from pathlib import Path
 
 
 def load_data(path:str,sc:SparkContext)-> RDD:
@@ -58,3 +60,26 @@ def preprocess(data: RDD[tuple[str, str]],
     if subset:
         return cleaned.take(subset)
     return cleaned
+
+
+
+
+def aggregate_res(path_to_results:str):
+
+
+
+
+
+    csv_dir = path_to_results
+    # Alle relevanten CSV-Dateien finden (ohne .crc oder andere Metadateien)
+    csv_files = [f for f in csv_dir.glob("part-*.csv") if f.is_file()]
+
+    # Alle CSV-Dateien einlesen und zu einem großen DataFrame zusammenfügen
+    df_list = [pd.read_csv(f) for f in csv_files]
+    combined_df = pd.concat(df_list, ignore_index=True)
+
+    # Als eine gemeinsame CSV-Datei speichern
+    combined_df.to_csv("./output/topics_combined.csv", index=False)
+
+    print("Fertig: ./output/topics_combined.csv")
+

@@ -1,9 +1,10 @@
 import math
 import time
+from pathlib import Path
 
 from lda import build_vocabulary, build_document_dataframe, train_lda, describe_topics
 from tf_idf import calc_df, calc_tf, calc_word_doc_pairs, calc_tf_idf
-from util import load_data, preprocess
+from util import load_data, preprocess, aggregate_res
 
 from pyspark import SparkConf, SparkContext
 
@@ -103,6 +104,7 @@ def pipeline():
 
 
 if __name__ == '__main__':
-    pipeline()
-    pass
+    #pipeline()
+    aggregate_res(path_to_results=Path("./output/whole_set_iter_10/topics"))
+
 
